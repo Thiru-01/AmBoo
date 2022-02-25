@@ -1,28 +1,34 @@
+import 'package:amboo/controller/datacontroller.dart';
+import 'package:amboo/model/spotifymodel.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spotify/spotify.dart';
 
-getSuggestion(pattern) async {
-  SharedPreferences prefer = await SharedPreferences.getInstance();
-  http.Response data = await getAccessToken();
-  print("thiruuuuuuuuuuuuuuuuuuuu:${data.body}");
-  String baseUrl =
-      'https://api.spotify.com/v1/$pattern?type=album&include_external=audio';
-  Map<String, String> header = {
-    'Authorization': '7c4ee6e4f46d455fa401338f7c9d12fb',
-    'Content-Type': 'application/json'
-  };
-  http.Response result = await http.get(Uri.parse(baseUrl), headers: header);
-  print(result.body);
-}
+Future<List<String>> getSuggestion(String pattern) async {
+  DataController controller = Get.find(tag: 'dataController');
+  final credential = SpotifyApiCredentials(
+      "7c4ee6e4f46d455fa401338f7c9d12fb", '52a768eb4f5f4614bf60fca3b1aa5b05');
+  SpotifyApi spotifyApi = SpotifyApi(
+    credential,
+  );
+  SpotifyApiCredentials accessTokenSet = await spotifyApi.getCredentials();
 
-Future<http.Response> getAccessToken() async {
-  String baseUrl = 'https://accounts.spotify.com/api/token';
-  Map<String, String> header = {
-    "grant_type": "authorization_code",
-    "redirect_uri": 'amboo://callback',
-    "client_secret": 'f1c5d2edc8204deda6f30d516b923931',
-    "client_id": '7c4ee6e4f46d455fa401338f7c9d12fb',
-  };
-  http.Response result = await http.post(Uri.parse(baseUrl), headers: header);
-  return result;
+  List<String> name = [];
+  if (pattern.isNotEmpty) {
+    String baseUrl =
+        'https://api.spotify.com/v1/search?q=$pattern&type=track&limit=10';
+    Map<String, String> header = {
+      'Authorization': 'Bearer ${accessTokenSet.accessToken}',
+      'Content-Type': 'application/json'
+    };
+    http.Response result = await http.get(Uri.parse(baseUrl), headers: header);
+    SpotifyModel model = spotifyModelFromJson(result.body);
+    List<Item?> items = model.tracks.items;
+    for (int i = 0; i < items.length; i++) {
+      name.add(items[i]!.name);
+      controller.setContent(items[i]!.name, model.tracks.items[i]);
+    }
+  }
+
+  return name;
 }

@@ -1,12 +1,15 @@
 import 'package:amboo/constant.dart';
+import 'package:amboo/controller/datacontroller.dart';
 import 'package:amboo/controller/suggestion.dart';
+import 'package:amboo/model/spotifymodel.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotify_sdk/models/connection_status.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 class SongPage extends StatefulWidget {
   const SongPage({Key? key}) : super(key: key);
@@ -16,6 +19,7 @@ class SongPage extends StatefulWidget {
 }
 
 class _SongPageState extends State<SongPage> {
+  DataController controller = Get.put(DataController(), tag: 'dataController');
   @override
   Widget build(BuildContext context) {
     double scaleFactor = MediaQuery.of(context).textScaleFactor;
@@ -31,37 +35,46 @@ class _SongPageState extends State<SongPage> {
                       EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
                   child: Column(
                     children: [
-                      TextButton(
-                          onPressed: () async {
-                            await getSuggestion('oru');
-                          },
-                          child: const Text('Go'))
-                      // TypeAheadField(
-                      //   onSuggestionSelected: (suggestion) {
-                      //     print(suggestion);
-                      //   },
-                      //   suggestionsCallback: (pattern) {
-                      //     return getSuggestion(pattern);
-                      //   },
-                      //   itemBuilder: ((context, itemData) {
-                      //     return Container();
-                      //   }),
-                      //   textFieldConfiguration: TextFieldConfiguration(
-                      //       decoration: InputDecoration(
-                      //           prefix: SizedBox(
-                      //               width: MediaQuery.of(context).size.width *
-                      //                   0.05),
-                      //           hintText: 'Search',
-                      //           contentPadding: const EdgeInsets.only(
-                      //             top: 0,
-                      //             bottom: 0,
-                      //             left: 0,
-                      //           ),
-                      //           suffixIcon:
-                      //               const Icon(FontAwesomeIcons.search),
-                      //           border: const OutlineInputBorder())),
-                      // ),
-                      ,
+                      TypeAheadField(
+                        onSuggestionSelected: (suggestion) {
+                          Item item = controller.content[suggestion];
+                          controller.setContentEmpty();
+                        },
+                        suggestionsCallback: (pattern) async {
+                          List<String> data = await getSuggestion(pattern);
+                          return data;
+                        },
+                        hideOnEmpty: true,
+                        hideOnError: true,
+                        itemBuilder: ((context, itemData) {
+                          return ListTile(
+                              contentPadding: const EdgeInsets.all(6),
+                              subtitle: Text(
+                                  controller.content[itemData].artists[0].name),
+                              title: Text(itemData.toString(),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              leading: CachedNetworkImage(
+                                imageUrl: controller
+                                    .content[itemData].album.images[2].url,
+                                height: 80,
+                                width: 80,
+                              ));
+                        }),
+                        textFieldConfiguration: TextFieldConfiguration(
+                            decoration: InputDecoration(
+                                prefix: SizedBox(
+                                    width: MediaQuery.of(context).size.width *
+                                        0.05),
+                                hintText: 'Search',
+                                contentPadding: const EdgeInsets.only(
+                                  top: 0,
+                                  bottom: 0,
+                                  left: 0,
+                                ),
+                                suffixIcon: const Icon(FontAwesomeIcons.search),
+                                border: const OutlineInputBorder())),
+                      ),
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.05,
                       ),
@@ -84,7 +97,7 @@ class _SongPageState extends State<SongPage> {
                                       fontSize: scaleFactor * 22,
                                       fontWeight: FontWeight.bold))
                             ])),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -110,7 +123,7 @@ class _SongPageState extends State<SongPage> {
   }
 }
 
-void onLoading(context) {
+void onLoading(context, String message) {
   showDialog(
       context: context,
       useSafeArea: true,
@@ -126,7 +139,7 @@ void onLoading(context) {
                 const CircularProgressIndicator(),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.01),
                 Text(
-                  "Authenticating...",
+                  message,
                   style: TextStyle(
                       color: primaryColor,
                       fontSize: 16 * MediaQuery.of(context).textScaleFactor),

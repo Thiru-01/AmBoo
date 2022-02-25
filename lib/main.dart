@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:amboo/constant.dart';
 import 'package:amboo/controller/datacontroller.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
-import 'package:spotify_sdk/spotify_sdk_web.dart';
 import 'pages/songpage.dart';
 
 void main() {
@@ -81,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                                     "https://open.spotify.com/");
                                 if (result.isNotEmpty &&
                                     result[0].rawAddress.isNotEmpty) {
-                                  toNextPage(tokenController, _token);
+                                  toNextPage(tokenController, _token, context);
                                 }
                               } on SocketException catch (_) {
                                 // Get.snackbar(
@@ -95,7 +93,7 @@ class _HomePageState extends State<HomePage> {
                                 //     icon:
                                 //         const Icon(FontAwesomeIcons.infoCircle),
                                 //     borderColor: primaryColor);
-                                toNextPage(tokenController, _token);
+                                toNextPage(tokenController, _token, context);
                               }
                             },
                             decoration: InputDecoration(
@@ -150,44 +148,58 @@ Future<String> getAuthenticate() async {
   try {
     var authenticationToken = await SpotifySdk.getAuthenticationToken(
         clientId: "7c4ee6e4f46d455fa401338f7c9d12fb",
-        redirectUrl: "amboo://callback",
+        redirectUrl: "ours.amboo:/",
         scope: 'app-remote-control, '
             'user-modify-playback-state, '
             'playlist-read-private, '
             'playlist-modify-public,user-read-currently-playing');
     return authenticationToken;
   } on PlatformException catch (e) {
-    return Future.error('$e.code: $e.message');
+    return Future.error('${e.code}: ${e.message}');
   } on MissingPluginException {
     return Future.error('not implemented');
   }
 }
 
-Future<bool> connectToRemoteSpotify() async {
+Future<bool> connectToRemoteSpotify(context) async {
   try {
     var result = await SpotifySdk.connectToSpotifyRemote(
         clientId: '7c4ee6e4f46d455fa401338f7c9d12fb',
-        redirectUrl: 'amboo://callback');
+        redirectUrl: 'ours.amboo:/');
     return result;
   } on PlatformException catch (e) {
-    return Future.error('$e.code: $e.message');
+    if (e.code == 'SpotifyRemoteServiceException') {
+      Navigator.pop(context);
+      Get.snackbar("Can't connect to spotify app",
+          "please open the app and try again later",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.white,
+          borderColor: primaryColor,
+          borderRadius: 5,
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+          borderWidth: 2,
+          icon: const Icon(FontAwesomeIcons.infoCircle));
+      return Future.error('OpenError: Please run the application');
+    }
+    return Future.error('${e.code}: ${e.message}');
   } on MissingPluginException catch (e) {
-    return Future.error('$e.code : $e.message');
+    return Future.error('Message: ${e.message}');
   }
 }
 
-void toNextPage(tokenController, _token) async {
-  
+void toNextPage(tokenController, _token, context) async {
   SharedPreferences perfers = await SharedPreferences.getInstance();
+  onLoading(context, 'Connecting...');
   if (perfers.containsKey('authToken')) {
     tokenController.getToken(_token ?? 'empty');
-    bool connectionResult = await connectToRemoteSpotify();
+    bool connectionResult = await connectToRemoteSpotify(context);
     if (connectionResult) {
+      navigator!.pop(context);
       Get.off(() => const SongPage());
     }
   } else {
     String authToken = await getAuthenticate();
     perfers.setString('authToken', authToken);
-    toNextPage(tokenController, _token);
+    toNextPage(tokenController, _token, context);
   }
 }

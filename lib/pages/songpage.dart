@@ -1,12 +1,15 @@
 import 'package:amboo/constant.dart';
 import 'package:amboo/controller/datacontroller.dart';
+import 'package:amboo/controller/recently.dart';
 import 'package:amboo/controller/suggestion.dart';
 import 'package:amboo/model/spotifymodel.dart';
+import 'package:amboo/services/spotify_api.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:spotify/spotify.dart';
 import 'package:spotify_sdk/models/connection_status.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
@@ -19,6 +22,7 @@ class SongPage extends StatefulWidget {
 }
 
 class _SongPageState extends State<SongPage> {
+  BaApi api = BaApi();
   DataController controller = Get.put(DataController(), tag: 'dataController');
   @override
   Widget build(BuildContext context) {
@@ -41,11 +45,12 @@ class _SongPageState extends State<SongPage> {
                           controller.setContentEmpty();
                         },
                         suggestionsCallback: (pattern) async {
+                          await api.getSuggestion(pattern);
                           List<String> data = await getSuggestion(pattern);
+
                           return data;
                         },
                         hideOnEmpty: true,
-                        hideOnError: true,
                         itemBuilder: ((context, itemData) {
                           return ListTile(
                               contentPadding: const EdgeInsets.all(6),
@@ -77,6 +82,13 @@ class _SongPageState extends State<SongPage> {
                       ),
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.05,
+                        child: ElevatedButton(
+                            child: const Text(
+                              'thiru',
+                            ),
+                            onPressed: () async {
+                              await api.recentlyPlayed();
+                            }),
                       ),
                       Align(
                         alignment: Alignment.centerLeft,
@@ -98,6 +110,54 @@ class _SongPageState extends State<SongPage> {
                                       fontWeight: FontWeight.bold))
                             ])),
                       ),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.03,
+                      ),
+                      SizedBox(
+                          width: double.infinity,
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          child: FutureBuilder<List<PlayHistory>>(
+                            future: getRecent(),
+                            builder: ((context, snapshot) {
+                              if (snapshot.hasData) {
+                                return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        for (int i = 0;
+                                            i < snapshot.data!.length;
+                                            i++)
+                                          Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: GestureDetector(
+                                                onTap: () => getRecent(),
+                                                child: SizedBox(
+                                                  height: MediaQuery.of(context)
+                                                          .size
+                                                          .height *
+                                                      0.2,
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.4,
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: snapshot
+                                                        .data![i]
+                                                        .track!
+                                                        .artists![0]
+                                                        .images![0]
+                                                        .url!,
+                                                  ),
+                                                ),
+                                              ))
+                                      ],
+                                    ));
+                              }
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }),
+                          ))
                     ],
                   ),
                 ),

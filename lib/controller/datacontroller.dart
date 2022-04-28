@@ -5,9 +5,7 @@ import 'package:get/get.dart';
 class DataController extends GetxController {
   RxMap<dynamic, dynamic> content = {}.obs;
   var token = ''.obs;
-  getToken(String userToken) {
-    print(token);
-  }
+  getToken(String userToken) {}
 
   setContent(String name, dynamic data) {
     content.value.addIf(!content.value.containsKey(name), name, data);

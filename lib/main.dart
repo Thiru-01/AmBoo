@@ -8,11 +8,16 @@ import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spotify/spotify.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
 import 'pages/songpage.dart';
 
+late SpotifyApiCredentials credential;
 void main() {
   runApp(const MyApp());
+  credential = SpotifyApiCredentials(
+      "7c4ee6e4f46d455fa401338f7c9d12fb", 'd347907c8ecc45beacbf89321e08b900',
+      scopes: ["user-read-recently-played"]);
 }
 
 class MyApp extends StatelessWidget {
@@ -82,6 +87,7 @@ class _HomePageState extends State<HomePage> {
                                   toNextPage(tokenController, _token, context);
                                 }
                               } on SocketException catch (_) {
+                                // print(e);
                                 // Get.snackbar(
                                 //     'Please check your internet connection', '',
                                 //     snackPosition: SnackPosition.BOTTOM,

@@ -1,4 +1,5 @@
 import 'package:amboo/controller/datacontroller.dart';
+import 'package:amboo/main.dart';
 import 'package:amboo/model/spotifymodel.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -6,8 +7,7 @@ import 'package:spotify/spotify.dart';
 
 Future<List<String>> getSuggestion(String pattern) async {
   DataController controller = Get.find(tag: 'dataController');
-  final credential = SpotifyApiCredentials(
-      "7c4ee6e4f46d455fa401338f7c9d12fb", '52a768eb4f5f4614bf60fca3b1aa5b05');
+
   SpotifyApi spotifyApi = SpotifyApi(
     credential,
   );
